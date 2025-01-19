@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Obra de Arte</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            background-color: #f0f0f0;
+            perspective: 1000px;
+            font-family: Arial, sans-serif;
+        }
+        .tray {
+            width: 300px;
+            height: 200px;
+            position: relative;
+            transform-style: preserve-3d;
+            transform: rotateX(15deg) rotateY(20deg);
+            border: 2px solid #8b5e3c;
+            border-radius: 10px;
+            background-color: #dcdcdc;
+        }
+        .art-frame {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            width: 280px;
+            height: 180px;
+            background-color: #fff;
+            border: 10px solid #8b5e3c;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        .art {
+            width: 90%;
+            height: 90%;
+            background-color: #f0f0f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+        }
+        .art::before, .art::after {
+            content: '';
+            position: absolute;
+            background-color: #000;
+            border-radius: 50%;
+        }
+        .art::before {
+            width: 30%;
+            height: 30%;
+            left: 20%;
+            top: 20%;
+        }
+        .art::after {
+            width: 20%;
+            height: 20%;
+            right: 20%;
+            bottom: 20%;
+        }
+        .hidden-text {
+            position: absolute;
+            width: 80%;
+            text-align: center;
+            font-size: 22px;
+            color: rgba(0, 255, 0, 0.6); /* Verde neon */
+            mix-blend-mode: lighten;
+            pointer-events: none;
+            margin-top: 20px;
+            word-wrap: break-word;
+            line-height: 1.3; /* Espaçamento entre as linhas */
+            white-space: pre-line; /* Permite quebra de linha como no exemplo */
+        }
+        .letter {
+            opacity: 0;
+            display: inline-block;
+            transition: opacity 0.1s;
+        }
+        .reveal {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            pointer-events: none;
+            mix-blend-mode: multiply;
+            background: radial-gradient(circle, rgba(138, 43, 226, 1) 0%, rgba(138, 43, 226, 0) 60%);
+            transform: translate(-50%, -50%);
+        }
+        .paint-splatter {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(0, 255, 0, 0.6); /* Verde neon */
+            mix-blend-mode: lighten;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.1s;
+        }
+        .splatter-1 {
+            width: 50px;
+            height: 50px;
+            top: 50px;
+            right: -60px;
+        }
+        .splatter-2 {
+            width: 40px;
+            height: 40px;
+            top: 150px;
+            right: -80px;
+        }
+        .splatter-3 {
+            width: 30px;
+            height: 30px;
+            top: 90px;
+            right: -120px;
+        }
+    </style>
+</head>
+<body>
+    <div class="tray">
+        <div class="art-frame">
+            <div class="art"></div>
+        </div>
+    </div>
+
+    <div class="hidden-text" id="hidden-text"></div>
+
+    <div class="paint-splatter splatter-1" id="splatter-1"></div>
+    <div class="paint-splatter splatter-2" id="splatter-2"></div>
+    <div class="paint-splatter splatter-3" id="splatter-3"></div>
+
+    <div class="reveal" id="reveal"></div>
+
+    <script>
+        const reveal = document.getElementById('reveal');
+        const hiddenText = document.getElementById('hidden-text');
+        const splatter1 = document.getElementById('splatter-1');
+        const splatter2 = document.getElementById('splatter-2');
+        const splatter3 = document.getElementById('splatter-3');
+        const revealRadius = 75; // Raio de revelação da "lanterna"
+
+        // Texto atualizado
+        const combinedTextContent = `bonita desse jeito,
+   tu sabe que se um dia
+       entrar no louvre
+nem vão te deixar sair né?`;
+
+        // Função para dividir o texto em spans
+        function createLetterSpans(text, container) {
+            container.innerHTML = '';
+            const lines = text.split('\n');
+            lines.forEach(line => {
+                const lineDiv = document.createElement('div');
+                lineDiv.style.whiteSpace = 'nowrap'; // Impede quebra de linha dentro da mesma linha
+                lineDiv.style.marginBottom = '10px'; // Adiciona espaçamento entre as linhas
+                for (let char of line) {
+                    const span = document.createElement('span');
+                    span.classList.add('letter');
+                    span.textContent = char === ' ' ? '\u00A0' : char; // Use non-breaking space for spaces
+                    lineDiv.appendChild(span);
+                }
+                container.appendChild(lineDiv);
+            });
+        }
+
+        createLetterSpans(combinedTextContent, hiddenText);
+
+        // Ajuste da posição para manter o texto dentro da tela
+        hiddenText.style.top = 'calc(50% + 120px)'; // Elevação ajustada
+        hiddenText.style.left = '50%'; // Alinhar no centro horizontal
+        hiddenText.style.transform = 'translateX(-50%)'; // Ajustar o alinhamento central
+
+        // Função para atualizar as manchas de tinta com a interação UV
+        function updatePaintSplatter(e, splatter) {
+            const rect = splatter.getBoundingClientRect();
+            const dx = e.clientX - (rect.left + rect.width / 2);
+            const dy = e.clientY - (rect.top + rect.height / 2);
+            const distance = Math.sqrt(dx * dx + dy * dy);
+
+            if (distance < revealRadius) {
+                splatter.style.opacity = '1';
+            } else {
+                splatter.style.opacity = '0';
+            }
+        }
+
+        document.addEventListener('mousemove', (e) => {
+            reveal.style.top = `${e.clientY}px`;
+            reveal.style.left = `${e.clientX}px`;
+
+            const allLetters = hiddenText.querySelectorAll('.letter');
+            updateOpacity(allLetters, e);
+
+            // Atualizar as manchas de tinta
+            updatePaintSplatter(e, splatter1);
+            updatePaintSplatter(e, splatter2);
+            updatePaintSplatter(e, splatter3);
+        });
+
+        const updateOpacity = (letters, e) => {
+            letters.forEach(letter => {
+                const rect = letter.getBoundingClientRect();
+                const dx = e.clientX - (rect.left + rect.width / 2);
+                const dy = e.clientY - (rect.top + rect.height / 2);
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < revealRadius) {
+                    letter.style.opacity = '1';
+                } else {
+                    letter.style.opacity = '0';
+                }
+            });
+        };
+    </script>
+</body>
+</html>
